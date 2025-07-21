@@ -1,0 +1,3 @@
+[submodule "usaco-camp-parser"]
+	path = usaco-camp-parser
+	url = git@github-personal:rohin-garg/usaco-camp-parser.git
