@@ -11,14 +11,13 @@ RUN apt-get update && apt-get install -y \
 RUN curl -fsSL https://deb.nodesource.com/setup_lts.x | bash - && \
     apt-get install -y nodejs
 
-# eventaully move to rust install
-RUN npm install -g @openai/codex
+# use opencode agent
+RUN npm i -g opencode-ai@latest
 
 ARG PID
-RUN curl -J -O "http://127.0.0.1:8000/problems/${PID}" # downloads the problem into the current directory
+RUN curl -J -O "http://127.0.0.1:8000/problems/${PID}"
 
 WORKDIR /workspace
 
-RUN codex --help
-
+# eventually move over to just running opencode
 CMD ["bash"]

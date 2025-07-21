@@ -5,15 +5,19 @@ source .venv/bin/activate
 uv pip install -r requirements.txt
 ```
 
-
-#### Docker Commands in docker/ dir
+#### Run a job
+Create a `.env` file in the `docker/` directory with the necessary environment variables:
 ```
-docker build -t --e OPENAI_API_KEY="your-api-key-here" usaco-bench-env .
-docker run -it usaco-bench-env
+USACO_SERVER_SUBMISSION = '<USACO_SERVER_SUBMISSION_URL>'
+USACO_SERVER_BASE = '<USACO_SERVER_BASE_URL>'
+USACO_SERVER_RESULTS = '<USACO_SERVER_RESULTS_URL>'
+COOKIE_SESS_ID = '<YOUR_COOKIE_SESSION_ID>'
+SUBMISSION_LIMIT = <SUBMISSION_LIMIT>
+TIME_LIMIT = <TIME_LIMIT>
+MODEL_PROVIDER_API_KEY = '<YOUR_MODEL_PROVIDER_API_KEY>'
 ```
 
-#### TODO:
-- set up MCP server/client correctly
-- add auth to the parser server w/ API key, add that to the instantiation scripts
-    - update MCP server to handle auth correctly, query the right public URL (deploy server?)
-- figure out how to properly set up openai codex cli with MCP servers/prompt it through the docker 
+Run the bash script to build and run the image.
+```
+bash run_image.sh 1355 # PID of the image
+```
