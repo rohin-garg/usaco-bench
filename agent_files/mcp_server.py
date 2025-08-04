@@ -110,7 +110,6 @@ async def startup(request: Request) -> PlainTextResponse:
     start_time = time.time()
     return PlainTextResponse("OK")
 
-
 @mcp.tool()
 async def get_remaining_time_and_submissions() -> dict[str, int]:
     """Returns the remaining time (in minutes) and number of submissions for the problem"""
