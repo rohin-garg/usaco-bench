@@ -6,6 +6,8 @@ import os
 import time
 import requests
 from bs4 import BeautifulSoup
+import json
+import re
 
 mcp = FastMCP("usaco-server")
 
@@ -30,6 +32,41 @@ cookies = {
 submissions_left = SUBMISSION_LIMIT
 start_time = -1
 
+# Logging setup
+LOG_FILE = "/tmp/submission_log.json"
+
+def log_submission(submission_data):
+    """Log submission data to file"""
+    try:
+        # Read existing log data
+        if os.path.exists(LOG_FILE):
+            with open(LOG_FILE, 'r') as f:
+                log_data = json.load(f)
+        else:
+            log_data = {"submissions": []}
+        
+        # Add new submission
+        log_data["submissions"].append(submission_data)
+        
+        # Write back to file
+        with open(LOG_FILE, 'w') as f:
+            json.dump(log_data, f, indent=2)
+    except Exception as e:
+        print(f"Failed to log submission: {e}")
+
+def extract_points_from_verdict(verdict):
+    """Extract points from verdict string"""
+    # Look for patterns like "100/100", "50/100", etc.
+    match = re.search(r'(\d+)/(\d+)', verdict)
+    if match:
+        return int(match.group(1)), int(match.group(2))
+    
+    # Look for patterns like "Accepted", "Wrong Answer", etc.
+    if 'accepted' in verdict.lower() or '100/' in verdict:
+        return 100, 100  # Assume full points for accepted
+    
+    return 0, 100  # Default to 0 points
+
 # solution code should be a string of bytes
 async def submit_problem(solution_code: str):
     submit_url = f'{USACO_SERVER_SUBMISSION}?pid={pid}'
@@ -53,7 +90,7 @@ async def submit_problem(solution_code: str):
     except requests.exceptions.RequestException as e:
         raise Exception(f"Failed to submit solution: {e}")
 
-    print('recieved response', response.url, response.status_code)
+    print('received response', response.url, response.status_code)
     time.sleep(10)
 
     subs_url = f'{USACO_SERVER_RESULTS}?pid={pid}'
@@ -90,14 +127,35 @@ async def submit_problem(solution_code: str):
             time_taken = cells[3].get_text().strip()
             memory = cells[4].get_text().strip()
 
-            return {
+            # Extract points from verdict
+            points_earned, points_total = extract_points_from_verdict(verdict)
+
+            result = {
                 "status": "judged",
                 "verdict": verdict,
                 "date": date,
                 "language": lang,
                 "time": time_taken,
+                "memory": memory,
+                "points_earned": points_earned,
+                "points_total": points_total
+            }
+
+            # Log this submission
+            log_entry = {
+                "timestamp": time.time(),
+                "human_timestamp": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
+                "submission_number": SUBMISSION_LIMIT - submissions_left + 1,
+                "verdict": verdict,
+                "points_earned": points_earned,
+                "points_total": points_total,
+                "elapsed_time_seconds": time.time() - start_time,
+                "time_taken": time_taken,
                 "memory": memory
             }
+            log_submission(log_entry)
+
+            return result
 
         time.sleep(10)
 
@@ -112,10 +170,10 @@ async def startup(request: Request) -> PlainTextResponse:
 
 @mcp.tool()
 async def get_remaining_time_and_submissions() -> dict[str, int]:
-    """Returns the remaining time (in minutes) and number of submissions for the problem"""
+    """Returns the remaining time (in seconds) and number of submissions for the problem"""
     return {
         "submissions_left": submissions_left,
-        "time_left": TIME_LIMIT - (time.time() - start_time)
+        "time_left": (TIME_LIMIT * 60) - (time.time() - start_time)
     }
 
 @mcp.tool()
@@ -128,7 +186,7 @@ async def submit_solution(file_path: str) -> dict[str, Any]:
     global submissions_left, start_time
     if submissions_left <= 0:
         raise Exception("No submissions left")
-    if TIME_LIMIT - (time.time() - start_time) <= 0:
+    if (TIME_LIMIT * 60) - (time.time() - start_time) <= 0:
         raise Exception("No time left")
     submissions_left -= 1
     with open(file_path, "rb") as f:

@@ -39,4 +39,7 @@ RUN if [[ $PROBLEM_SOURCE == http* ]]; then         curl -L -o problem.zip $PROB
 COPY agent_startup.sh /agent_startup.sh
 RUN chmod +x /agent_startup.sh
 
+# Create log directory and ensure it's accessible
+RUN mkdir -p /tmp && chmod 777 /tmp
+
 CMD ["/agent_startup.sh"]

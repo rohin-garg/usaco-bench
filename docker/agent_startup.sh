@@ -23,7 +23,7 @@ done
 echo "Initializing opencode..."
 # Attempt to run /init non-interactively.
 # This may need adjustment based on opencode's behavior.
-(cd /workspace/agent && echo "/init" | opencode)
+(cd /workspace/agent && opencode)
 
 # Start bash session for the user
 bash
