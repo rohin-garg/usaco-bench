@@ -7,25 +7,31 @@ PROBLEM_SOURCE=$1
 MODEL=$2
 MODEL_PROVIDER_API_KEY=$3
 
-# If the problem source is a local path, copy it to the build context
-if [[ $PROBLEM_SOURCE != http* ]]; then
-    if [ -d "$PROBLEM_SOURCE" ]; then
-        echo "Copying problem files from $PROBLEM_SOURCE"
-        cp -r "$PROBLEM_SOURCE" problem_files
-        PROBLEM_SOURCE=problem_files
-    else
-        echo "Error: Local path $PROBLEM_SOURCE not found."
-        exit 1
-    fi
+# Prepare build context for local problem files
+mkdir -p problem_files
+
+if [ -n "$PROBLEM_SOURCE" ] && [[ $PROBLEM_SOURCE != http* ]]; then
+  if [ -d "$PROBLEM_SOURCE" ]; then
+    echo "Copying problem files from $PROBLEM_SOURCE"
+    rm -rf problem_files/*
+    cp -r "$PROBLEM_SOURCE"/* problem_files/
+  else
+    echo "Error: Local path $PROBLEM_SOURCE not found."
+    exit 1
+  fi
 fi
 
-# Build the Docker image
-docker build -t usaco-bench-env --build-arg PROBLEM_SOURCE="$PROBLEM_SOURCE" --build-arg MODEL="$MODEL" --build-arg MODEL_PROVIDER_API_KEY="$MODEL_PROVIDER_API_KEY" .
+# Build the Docker image from repo root so Dockerfile can COPY files reliably
+docker build \
+  -f docker/Dockerfile \
+  -t usaco-bench-env \
+  --build-arg PROBLEM_SOURCE="$PROBLEM_SOURCE" \
+  --build-arg MODEL="$MODEL" \
+  --build-arg MODEL_PROVIDER_API_KEY="$MODEL_PROVIDER_API_KEY" \
+  .
 
 # Clean up copied problem files
-if [[ $PROBLEM_SOURCE == problem_files ]]; then
-    rm -rf problem_files
-fi
+rm -rf problem_files
 
 # Calculate timeout (TIME_LIMIT + 1 minute, default to 31 minutes if not set)
 TIMEOUT_MINUTES=$((${TIME_LIMIT:-30} + 1))
@@ -37,7 +43,11 @@ echo "Starting container with ${TIMEOUT_MINUTES} minute timeout..."
 CONTAINER_NAME="usaco-bench-$(date +%s)-$$"
 
 # Run the Docker container with timeout
-timeout ${TIMEOUT_SECONDS}s docker run --name "$CONTAINER_NAME" --env-file .env usaco-bench-env
+ENV_FILE_ARG=""
+if [ -f .env ]; then
+  ENV_FILE_ARG="--env-file .env"
+fi
+timeout ${TIMEOUT_SECONDS}s docker run --name "$CONTAINER_NAME" $ENV_FILE_ARG usaco-bench-env
 
 # Capture the exit code
 DOCKER_EXIT_CODE=$?

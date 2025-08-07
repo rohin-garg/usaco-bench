@@ -35,22 +35,56 @@ start_time = -1
 # Logging setup
 LOG_FILE = "/tmp/submission_log.json"
 
-def log_submission(submission_data):
-    """Log submission data to file"""
+def _read_log_file() -> dict:
+    """Read the log JSON, ensuring required keys exist."""
+    if os.path.exists(LOG_FILE):
+        try:
+            with open(LOG_FILE, 'r') as file_handle:
+                data = json.load(file_handle)
+        except Exception:
+            # If the file is corrupted, start fresh
+            data = {}
+    else:
+        data = {}
+
+    if "events" not in data:
+        data["events"] = []
+    if "submissions" not in data:
+        data["submissions"] = []
+    if "results" not in data:
+        data["results"] = []
+    return data
+
+def _write_log_file(data: dict) -> None:
+    with open(LOG_FILE, 'w') as file_handle:
+        json.dump(data, file_handle, indent=2)
+
+def ensure_log_initialized() -> None:
+    """Create the log file with the expected structure if it doesn't exist."""
+    data = _read_log_file()
+    _write_log_file(data)
+
+def log_event(event: dict) -> None:
+    """Append an event to the log under the 'events' list."""
     try:
-        # Read existing log data
-        if os.path.exists(LOG_FILE):
-            with open(LOG_FILE, 'r') as f:
-                log_data = json.load(f)
-        else:
-            log_data = {"submissions": []}
-        
-        # Add new submission
-        log_data["submissions"].append(submission_data)
-        
-        # Write back to file
-        with open(LOG_FILE, 'w') as f:
-            json.dump(log_data, f, indent=2)
+        data = _read_log_file()
+        data["events"].append(event)
+        _write_log_file(data)
+    except Exception as e:
+        print(f"Failed to log event: {e}")
+
+def log_submission(submission_data: dict) -> None:
+    """Log a judged submission and update the simple results view."""
+    try:
+        data = _read_log_file()
+        data["submissions"].append(submission_data)
+        # Maintain a simplified results list of {time, points}
+        data["results"].append({
+            "time": submission_data.get("elapsed_time_seconds"),
+            "time_human": submission_data.get("human_timestamp"),
+            "points": submission_data.get("points_earned"),
+        })
+        _write_log_file(data)
     except Exception as e:
         print(f"Failed to log submission: {e}")
 
@@ -166,15 +200,36 @@ async def startup(request: Request) -> PlainTextResponse:
     global submissions_left, start_time
     submissions_left = SUBMISSION_LIMIT
     start_time = time.time()
+    # Ensure log file exists and record startup event
+    ensure_log_initialized()
+    log_event({
+        "timestamp": time.time(),
+        "human_timestamp": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
+        "type": "startup",
+        "details": {
+            "submission_limit": SUBMISSION_LIMIT,
+            "time_limit_minutes": TIME_LIMIT,
+            "pid": pid,
+        }
+    })
     return PlainTextResponse("OK")
 
 @mcp.tool()
 async def get_remaining_time_and_submissions() -> dict[str, int]:
     """Returns the remaining time (in seconds) and number of submissions for the problem"""
-    return {
+    result = {
         "submissions_left": submissions_left,
         "time_left": (TIME_LIMIT * 60) - (time.time() - start_time)
     }
+    # Log tool invocation
+    log_event({
+        "timestamp": time.time(),
+        "human_timestamp": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
+        "type": "tool_call",
+        "tool": "get_remaining_time_and_submissions",
+        "output": result,
+    })
+    return result
 
 @mcp.tool()
 async def submit_solution(file_path: str) -> dict[str, Any]:
@@ -185,10 +240,35 @@ async def submit_solution(file_path: str) -> dict[str, Any]:
     """
     global submissions_left, start_time
     if submissions_left <= 0:
+        log_event({
+            "timestamp": time.time(),
+            "human_timestamp": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
+            "type": "tool_error",
+            "tool": "submit_solution",
+            "error": "No submissions left"
+        })
         raise Exception("No submissions left")
     if (TIME_LIMIT * 60) - (time.time() - start_time) <= 0:
+        log_event({
+            "timestamp": time.time(),
+            "human_timestamp": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
+            "type": "tool_error",
+            "tool": "submit_solution",
+            "error": "No time left"
+        })
         raise Exception("No time left")
     submissions_left -= 1
+    # Log tool invocation (do not log file contents)
+    log_event({
+        "timestamp": time.time(),
+        "human_timestamp": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
+        "type": "tool_call",
+        "tool": "submit_solution",
+        "args": {"file_path": file_path},
+        "context": {
+            "submission_number": SUBMISSION_LIMIT - submissions_left,
+        }
+    })
     with open(file_path, "rb") as f:
         file_bytes = f.read()
     return await submit_problem(file_bytes)
