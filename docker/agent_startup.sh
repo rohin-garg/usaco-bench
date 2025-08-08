@@ -31,12 +31,24 @@ if [ "$MISSING_VAR" = false ]; then
   done
 else
   echo "MCP server env not fully configured; skipping MCP startup."
+  for var in "${REQUIRED_VARS[@]}"; do
+    if [ -z "${!var}" ]; then
+      echo "Missing: $var"
+    fi
+  done
 fi
 
 # Initialize opencode
 echo "Initializing opencode..."
+# Pass model env to opencode compatible with OpenRouter
+if [ -n "$MODEL_PROVIDER_API_KEY" ]; then
+  export OPENROUTER_API_KEY="$MODEL_PROVIDER_API_KEY"
+fi
+
+exec /bin/bash
+
 # Start OpenCode in the agent workspace; if it exits, continue to shell
-(cd /workspace/agent && opencode || true)
+# (cd /workspace/agent && opencode || true)
 
 # Start bash session for the user
-bash
+# bash

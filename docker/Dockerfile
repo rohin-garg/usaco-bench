@@ -28,13 +28,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 WORKDIR /workspace/agent
 
 ARG MODEL
-ARG MODEL_PROVIDER_API_KEY
 
 # Copy and modify the opencode config
 COPY agent_files/opencode_config.json /tmp/opencode_config.json
 RUN mkdir -p /root/.config/opencode && \
-    jq --arg model "$MODEL" --arg apikey "$MODEL_PROVIDER_API_KEY" \
-      '. + {model: $model} | .providers.openrouter.apiKey = $apikey' \
+    jq --arg model "$MODEL" \
+      '. + {model: $model}' \
       /tmp/opencode_config.json > /root/.config/opencode/opencode.json
 
 # copy instructions file
@@ -45,8 +44,8 @@ RUN npm i -g opencode-ai@latest
 
 # Download or copy problem files
 ARG PROBLEM_SOURCE
-# Always copy any local problem files prepared by the runner into the image (may be empty)
-COPY docker/problem_files/ /workspace/agent/problem_files/
+# Stage any local problem files prepared by the runner (may be empty)
+COPY docker/problem_files/ /docker_problem_files/
 
 # If a URL is provided, download and unzip it. Otherwise, if local problem files exist, copy them into the working directory
 RUN set -e; \
@@ -55,14 +54,13 @@ RUN set -e; \
       curl -L -o /workspace/agent/problem.zip "$PROBLEM_SOURCE" && \
       unzip -o /workspace/agent/problem.zip -d /workspace/agent && \
       rm /workspace/agent/problem.zip; \
+    elif [ -d /docker_problem_files ] && [ "$(ls -A /docker_problem_files 2>/dev/null)" ]; then \
+      echo "Copying staged local problem files into workspace"; \
+      cp -r /docker_problem_files/* /workspace/agent/; \
     else \
-      if [ -d /workspace/agent/problem_files ] && [ "$(ls -A /workspace/agent/problem_files 2>/dev/null)" ]; then \
-        echo "Copying local problem files into workspace"; \
-        cp -r /workspace/agent/problem_files/* /workspace/agent/; \
-      else \
-        echo "No local problem files provided"; \
-      fi; \
-    fi
+      echo "No problem files provided"; \
+    fi; \
+    rm -rf /docker_problem_files
 
 # Copy the startup script
 COPY docker/agent_startup.sh /agent_startup.sh

@@ -2,16 +2,11 @@
     "$schema": "https://opencode.ai/config.json",
     "autoupdate": true,
     "model": "PLACEHOLDER_WILL_BE_REPLACED",
-    "providers": {
-        "openrouter": {
-            "apiKey": "PLACEHOLDER_WILL_BE_REPLACED"
-        }
-    },
     "instructions": ["/INSTRUCTIONS.md"],
     "mcp": {
         "usaco-submit-mcp-server": {
             "type": "remote",
-            "command": ["http://127.0.0.1:8001"],
+            "url": "http://127.0.0.1:8001",
             "enabled": true
         }
     }
