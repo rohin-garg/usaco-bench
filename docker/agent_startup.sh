@@ -45,10 +45,28 @@ if [ -n "$MODEL_PROVIDER_API_KEY" ]; then
   export OPENROUTER_API_KEY="$MODEL_PROVIDER_API_KEY"
 fi
 
+# Apply runtime model override to opencode config if provided, and sync to user config
+if [ -f /workspace/opencode_config.json ]; then
+  if [ -n "$MODEL" ]; then
+    echo "Applying runtime model override to opencode config..."
+    if echo "$MODEL" | grep -q '^openrouter/'; then
+      FULL_MODEL="$MODEL"; SHORT_MODEL="${MODEL#openrouter/}"
+    else
+      FULL_MODEL="openrouter/$MODEL"; SHORT_MODEL="$MODEL"
+    fi
+    tmpfile=$(mktemp)
+    jq --arg short "$SHORT_MODEL" --arg full "$FULL_MODEL" \
+      '.provider.openrouter.models = {($short): {}} | .model = $full' \
+      /workspace/opencode_config.json > "$tmpfile" && mv "$tmpfile" /workspace/opencode_config.json
+  fi
+  mkdir -p /root/.config/opencode
+  cp /workspace/opencode_config.json /root/.config/opencode/opencode.json
+fi
+
 exec /bin/bash
 
 # Start OpenCode in the agent workspace; if it exits, continue to shell
-# (cd /workspace/agent && opencode || true)
+(cd /workspace/agent && opencode -p "$(cat /INSTRUCTIONS.md)" || true)
 
 # Start bash session for the user
 # bash

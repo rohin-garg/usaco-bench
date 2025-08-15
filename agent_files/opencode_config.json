@@ -1,7 +1,14 @@
 {
     "$schema": "https://opencode.ai/config.json",
+    "model": "MODEL_PLACEHOLDER_WILL_BE_REPLACED",
+    "provider": {
+        "openrouter": {
+            "models": {
+                "MODEL_PLACEHOLDER_WILL_BE_REPLACED": {}
+            }
+        }
+    },
     "autoupdate": true,
-    "model": "PLACEHOLDER_WILL_BE_REPLACED",
     "instructions": ["/INSTRUCTIONS.md"],
     "mcp": {
         "usaco-submit-mcp-server": {

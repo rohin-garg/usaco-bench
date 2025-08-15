@@ -29,12 +29,21 @@ WORKDIR /workspace/agent
 
 ARG MODEL
 
-# Copy and modify the opencode config
-COPY agent_files/opencode_config.json /tmp/opencode_config.json
+# Copy and modify the opencode config (place in workspace and user config)
+COPY agent_files/opencode_config.json /workspace/opencode_config.json
 RUN mkdir -p /root/.config/opencode && \
-    jq --arg model "$MODEL" \
-      '. + {model: $model}' \
-      /tmp/opencode_config.json > /root/.config/opencode/opencode.json
+    if [ -n "$MODEL" ]; then \
+      if echo "$MODEL" | grep -q '^openrouter/'; then \
+        FULL_MODEL="$MODEL"; SHORT_MODEL="${MODEL#openrouter/}"; \
+      else \
+        FULL_MODEL="openrouter/$MODEL"; SHORT_MODEL="$MODEL"; \
+      fi; \
+      tmpfile=$(mktemp); \
+      jq --arg short "$SHORT_MODEL" --arg full "$FULL_MODEL" \
+        '.provider.openrouter.models = {($short): {}} | .model = $full' \
+        /workspace/opencode_config.json > "$tmpfile" && mv "$tmpfile" /workspace/opencode_config.json; \
+    fi && \
+    cp /workspace/opencode_config.json /root/.config/opencode/opencode.json
 
 # copy instructions file
 COPY agent_files/INSTRUCTIONS.md /INSTRUCTIONS.md

@@ -77,6 +77,7 @@ problem_dir/
 - Working directory for the agent: `/workspace/agent`
 - MCP server (if configured) listens on `http://127.0.0.1:8001`
 - You’ll drop into an interactive bash session after initialization
+- OpenCode config: `/workspace/opencode_config.json` (synced at startup/build to `/root/.config/opencode/opencode.json`; the `MODEL` env can override the model in this config)
 
 ### MCP Tools available to the agent
 - `submit_solution(file_path)`: Submits a C++ solution to the online judge
