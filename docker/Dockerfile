@@ -21,6 +21,7 @@ RUN curl -fsSL https://deb.nodesource.com/setup_lts.x | bash - &&     apt-get in
 # Set up the server
 WORKDIR /server
 COPY agent_files/mcp_server.py .
+COPY agent_files/test_mcp_server.py .
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 

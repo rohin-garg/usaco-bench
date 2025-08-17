@@ -66,7 +66,4 @@ fi
 exec /bin/bash
 
 # Start OpenCode in the agent workspace; if it exits, continue to shell
-(cd /workspace/agent && opencode -p "$(cat /INSTRUCTIONS.md)" || true)
-
-# Start bash session for the user
-# bash
+# (cd /workspace/agent && opencode -p "$(cat /INSTRUCTIONS.md)" || true)

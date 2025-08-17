@@ -1,5 +1,5 @@
 from typing import Any
-from fastmcp import FastMCP
+from fastmcp import FastMCP, Client
 from starlette.requests import Request
 from starlette.responses import PlainTextResponse
 import os
@@ -8,6 +8,7 @@ import requests
 from bs4 import BeautifulSoup
 import json
 import re
+import asyncio
 
 mcp = FastMCP("usaco-server")
 
@@ -219,7 +220,7 @@ async def get_remaining_time_and_submissions() -> dict[str, int]:
     """Returns the remaining time (in seconds) and number of submissions for the problem"""
     result = {
         "submissions_left": submissions_left,
-        "time_left": (TIME_LIMIT * 60) - (time.time() - start_time)
+        "time_left": round((TIME_LIMIT * 60) - (time.time() - start_time))
     }
     # Log tool invocation
     log_event({
@@ -233,10 +234,22 @@ async def get_remaining_time_and_submissions() -> dict[str, int]:
 
 @mcp.tool()
 async def submit_solution(file_path: str) -> dict[str, Any]:
-    """Submits c++ source code to the system, returns ...
+    """Submit a C++17 source file to the configured judge and return the final verdict.
 
     Args:
-        file_path: the full path to the file that's being submitted
+        file_path: Absolute path to the local C++ source file to submit.
+
+    Returns:
+        A dict containing:
+        - status: "judged"
+        - verdict: e.g., "100/100", "Accepted", "Wrong Answer", etc.
+        - date: timestamp string reported by the judge
+        - language: language reported by the judge
+        - time: runtime reported by the judge
+        - memory: memory usage reported by the judge
+        - points_earned: integer points parsed from the verdict (best-effort)
+        - points_total: integer total points parsed from the verdict (best-effort)
+
     """
     global submissions_left, start_time
     if submissions_left <= 0:
@@ -275,6 +288,6 @@ async def submit_solution(file_path: str) -> dict[str, Any]:
 
 if __name__ == "__main__":
     mcp.run(
-        transport='http',
+        transport='sse',
         port=8001,
     )
