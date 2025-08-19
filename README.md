@@ -17,7 +17,7 @@ Sandboxed Docker environment to benchmark AI coding agents (OpenCode) on competi
 Create `docker/.env` when using an online judge or to set defaults:
 
 ```bash
-# MCP Server Configuration (only needed for online judge)
+# MCP Server Configuration (you must specify this. currently only works with confidential USACO judge)
 BASE_URL='<YOUR_JUDGE_BASE_URL>'
 SUBMISSION_URL='<YOUR_JUDGE_SUBMISSION_URL>'
 RESULTS_URL='<YOUR_JUDGE_RESULTS_URL>'
@@ -34,7 +34,6 @@ MODEL='anthropic/claude-3.5-sonnet'
 ```
 
 Notes:
-- If the MCP variables are omitted, the MCP server is skipped and you can still solve local problems.
 - `MODEL` and `MODEL_PROVIDER_API_KEY` can be passed to the build via script arguments.
 
 ## Quick Start
@@ -43,14 +42,9 @@ Notes:
 cd docker
 ```
 
-2) Local problem folder (no online judge):
+2) Run it on a single problem
 ```bash
 ./run_single_problem.sh /absolute/path/to/problem_dir "anthropic/claude-3.5-sonnet" "<OPENROUTER_API_KEY>"
-```
-
-3) Online judge (requires `docker/.env` with MCP config):
-```bash
-./run_single_problem.sh
 ```
 
 ### What the script does
