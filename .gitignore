@@ -205,3 +205,7 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# don't include submission logs by default, unless they're in any subdirectory of logs/
+submission_log*
+!logs/**/submission_log.txt

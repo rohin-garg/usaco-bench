@@ -63,7 +63,8 @@ if [ -f /workspace/opencode_config.json ]; then
   cp /workspace/opencode_config.json /root/.config/opencode/opencode.json
 fi
 
-exec /bin/bash
+# exec /bin/bash
+sleep 5s
 
 # Start OpenCode in the agent workspace; if it exits, continue to shell
-# (cd /workspace/agent && opencode -p "$(cat /INSTRUCTIONS.md)" || true)
+(cd /workspace/agent && opencode -p "$(cat /INSTRUCTIONS.md)" || true)
